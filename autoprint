@@ -7,6 +7,14 @@ tmpMailFile=""
 tmpMailPrintFolder=""
 tmpRenderedMailPrintFolder=""
 
+#loggingfunction
+DATE='date +%Y/%m/%d:%H:%M:%S'
+LOGGING_PREFIX=' autoprint-logging:'
+function write_log {
+   LOGMSG=$(echo `$DATE`"$LOGGING_PREFIX $1")
+   logger -p local7.info "$LOGMSG"
+}
+
 printUsage(){
      echo "################################################################################################################"
      echo "# $0          "
@@ -85,6 +93,9 @@ processMail(){
                 until [ $counter -gt $copies ] 
                 do 
 	             lpr -H"$printServer" -P"$printQueue" "$renderedFile"
+                    if [ $counter -eq 1 ]; then 
+			write_log "lpr -H$printServer -P$printQueue $renderedFile (orgFile: $f   copies: $copies )"
+		    fi
                     #lpr -H"$printServer" -P"$printQueue" "$f" 
                     counter=$[$counter+1]
                 done
