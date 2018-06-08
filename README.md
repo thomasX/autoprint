@@ -20,6 +20,16 @@ the config file has 1 configline per e-mail containing the following parameters:
     param 7:  copies                                      
     param 8:  keep mail on Server (Y/N)                  
     param 9:  folder  (optional parameter if folder is set only this mail-folder will be downloaded  
+    
+    
+# logging:    
+    
+we use syslog logging... if you want to put all printlogging to a customized file add the following line to /etc/rsyslog.cong:
+:msg, contains ," autoprint-logging:"  /var/log/autprint.log
+
+Attention: don't forget to config the logrotate ! 
+
+
    
    
    
