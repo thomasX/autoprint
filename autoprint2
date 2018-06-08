@@ -1,0 +1,145 @@
+#!/bin/bash
+
+configFile=$1
+usageError="n"
+autoprintBaseDir="/usr/local/autoprint"
+tmpMailFile=""
+tmpMailPrintFolder=""
+tmpRenderedMailPrintFolder=""
+
+printUsage(){
+     echo "################################################################################################################"
+     echo "# $0          "
+     echo "# does automatically print all attachments of the given e-mail addresses            "
+     echo "# usage: $0 configfilenam"
+     echo "#             "
+     echo "#             "
+     echo "#             "
+     echo "#    the config file has 1 configline per e-mail containing the following parameters:         "
+     echo "#    param 1:  mail-server         "
+     echo "#    param 2:  mail-address         "
+     echo "#    param 3:  password         "
+     echo "#    param 4:  printserver     "
+     echo "#    param 5:  printqueue         "
+     echo "#    param 6:  attachment types (.pdf.jpg.gif.png)         "
+     echo "#    param 7:  copies                                      "
+     echo "#    param 8:  keep mail on Server (Y/N)                  "
+     echo "#    param 7:  folder  (optional parameter if folder is set only this mail-folder will be downloaded  "
+     echo "#             "
+     echo "#             "
+     echo "#             "
+     echo "################################################################################################################"
+     echo "################################################################################################################"
+     exit 1
+}
+processMail(){
+       IFS=' ' read mailServer mailAddress passwd printServer printQueue attachmentTypes copies keepOnServer imapfolder <<< "$configLine"
+       echo "set no syslog" > "$fetchmailrc"
+       echo "set logfile /var/log/fetchmail.log" >> "$fetchmailrc"
+       echo "poll $mailServer proto imap" >> "$fetchmailrc"
+       echo "           user   $mailAddress pass  $passwd " >> "$fetchmailrc"
+       if [[ $imapfolder == "" ]]; then 
+         echo ""
+       else
+         echo "    folder $imapfolder" >> "$fetchmailrc"
+       fi
+       cp "$fetchmailrc" /tmp/tomFetchmailrc
+
+       if [[ $keepOnServer == "Y" ]]; then 
+		/usr/bin/fetchmail -f "$fetchmailrc" --keep --bsmtp "$tmpMailFile"
+       else
+		/usr/bin/fetchmail -f "$fetchmailrc" --bsmtp "$tmpMailFile"
+       fi
+     #  echo "tmpMailFile: $tmpMailFile" 
+     #  echo "tmpRenderedMailPrintFolder: $tmpRenderedMailPrintFolder"
+      /usr/bin/uudeview +e $attachmentTypes -p $tmpMailPrintFolder  -i $tmpMailFile
+      cd "$tmpMailPrintFolder" 
+     #for file in *; do mv "$file" `echo $file | tr ' ' '_'` ; done
+     for f in *; do
+        if [[ $f == "*"  ]];then 
+           echo ""
+           echo " ... wird nicht bearbeitet: $f"
+        else
+          nfile=$(echo $f | tr ' ' '_')
+          if [[ "$f" == "$nfile" ]];then 
+                echo ""
+          else
+		mv "$f" "$nfile" 
+          fi
+           #echo " ..bearbeitet: $f"
+           #ltrim
+           f=$(echo $nfile | sed 's/^[ \t]*//')
+           #rtrim
+           f=$(echo $f | sed -e 's/[ \t]*$//')
+           if [[ $f == "" ]];then
+                echo ""
+           else
+           	counter=1
+                if [ $copies -gt 10 ];then 
+                    copies=10
+                fi
+
+		renderedFile=$( echo "$tmpRenderedMailPrintFolder/$f.autoprint.ps" )
+                #echo "renderedFile liegt hier: $renderedFile"
+	        pdftops "$f" "$renderedFile"
+                until [ $counter -gt $copies ] 
+                do 
+	             lpr -H"$printServer" -P"$printQueue" "$renderedFile"
+                    #lpr -H"$printServer" -P"$printQueue" "$f" 
+                    counter=$[$counter+1]
+                done
+	   fi
+        fi
+     done
+
+
+
+
+}
+
+
+
+
+### start main script 
+if [ $# -lt 1 ]; then 
+  usageError="X"
+fi
+if [[ $usageError == "X" ]];then
+   printUsage
+fi  
+if [ -f "$configFile" ]; then 
+    echo ""
+else
+    echo "#################################################"
+    echo "  config file $configFile  not found"
+    echo ""
+    printUsage
+fi 
+
+while read LINE ; do
+       configLine=$LINE
+       configLine=$(echo $configLine | sed 's/^[ \t]*//')
+       configLine=$(echo $configLine | sed 's/^[;:]/#/')
+       if [[ $configLine != "#"* ]];then
+         fetchmailrc=$(mktemp)
+         tmpMailFile=$(mktemp  -p "$autoprintBaseDir" -t "mailFilE"__XXXXXXXXXX)
+         tmpMailPrintFolder=$(mktemp -d -p "$autoprintBaseDir" -t "mailPrintFolder"__XXXXXXXXXX)
+         tmpRenderedMailPrintFolder=$(mktemp -d -p "$autoprintBaseDir" -t "renderedMailFolder"__XXXXXXXXXX)
+         echo "processing: $configLine"
+         processMail
+	 rm -f "$fetchmailrc"
+         if [[ $tmpMailFile == "$autoprintBaseDir"* ]]; then 
+             rm -f "$tmpMailFile" 
+      	 fi 
+         if [[ $tmpMailPrintFolder == "$autoprintBaseDir"* ]]; then 
+         #     echo "jetzt wird der tmpMailfolder geloesch"
+		rm -Rf "$tmpMailPrintFolder" 
+      	 fi 
+         if [[ $tmpRenderedMailPrintFolder == "$autoprintBaseDir"* ]]; then 
+         #     echo "jetzt wird der tmpMailfolder geloesch"
+                ls -la  "$tmpRenderedMailPrintFolder"    >> /tmp/tom.render
+		rm -Rf "$tmpRenderedMailPrintFolder"
+      	 fi 
+	fi 
+done <$configFile
+
