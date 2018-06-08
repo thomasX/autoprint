@@ -24,7 +24,7 @@ printUsage(){
      echo "#    param 6:  attachment types (.pdf.jpg.gif.png)         "
      echo "#    param 7:  copies                                      "
      echo "#    param 8:  keep mail on Server (Y/N)                  "
-     echo "#    param 7:  folder  (optional parameter if folder is set only this mail-folder will be downloaded  "
+     echo "#    param 9:  folder  (optional parameter if folder is set only this mail-folder will be downloaded  "
      echo "#             "
      echo "#             "
      echo "#             "
