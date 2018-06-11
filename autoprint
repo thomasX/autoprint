@@ -89,7 +89,7 @@ processMail(){
 
 		renderedFile=$( echo "$tmpRenderedMailPrintFolder/$f.autoprint.ps" )
                 #echo "renderedFile liegt hier: $renderedFile"
-	        pdftops "$f" "$renderedFile"
+	        pdftops -paper A4 "$f" "$renderedFile"
                 until [ $counter -gt $copies ] 
                 do 
 	             lpr -H"$printServer" -P"$printQueue" "$renderedFile"
