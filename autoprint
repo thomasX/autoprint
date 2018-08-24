@@ -60,7 +60,7 @@ processMail(){
        fi
      #  echo "tmpMailFile: $tmpMailFile" 
      #  echo "tmpRenderedMailPrintFolder: $tmpRenderedMailPrintFolder"
-      /usr/bin/uudeview +e $attachmentTypes -p $tmpMailPrintFolder  -i $tmpMailFile
+      /usr/bin/uudeview -a +e $attachmentTypes -p $tmpMailPrintFolder  -i $tmpMailFile
       cd "$tmpMailPrintFolder" 
      #for file in *; do mv "$file" `echo $file | tr ' ' '_'` ; done
      for f in *; do
